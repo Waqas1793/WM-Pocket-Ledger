@@ -1,0 +1,39 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: unzip -q pocket-ledger-v2.zip -d app
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install
+        working-directory: app
+        run: npm install --legacy-peer-deps
+      - name: Add Android
+        working-directory: app
+        run: npx cap add android
+      - name: Build web app
+        working-directory: app
+        run: npx vite build
+      - name: Sync
+        working-directory: app
+        run: npx cap sync android
+      - name: Build debug APK
+        working-directory: app/android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PocketLedger-apk
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
